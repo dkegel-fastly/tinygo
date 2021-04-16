@@ -23,12 +23,33 @@ func GOROOT() string {
 	return "/usr/local/go"
 }
 
-// TODO: fill with real args.
-var args = []string{"/proc/self/exe"}
+// Command line arguments that are returned if no arguments are provided to the
+// application.
+var defaultArgs = []string{"/proc/self/exe"}
+
+var main_argc int32
+var main_argv *unsafe.Pointer
 
 //go:linkname os_runtime_args os.runtime_args
 func os_runtime_args() []string {
-	return args
+	if main_argc != 0 {
+		// Convert (argc, argv) C "slice" to Go string slice.
+		args := make([]string, 0, main_argc)
+		argv := main_argv
+		for *argv != nil {
+			// Convert the C string to a Go string.
+			length := strlen(*argv)
+			argString := _string{
+				length: length,
+				ptr:    (*byte)(*argv),
+			}
+			args = append(args, *(*string)(unsafe.Pointer(&argString)))
+			// This is argv++ in C.
+			argv = (*unsafe.Pointer)(unsafe.Pointer(uintptr(unsafe.Pointer(argv)) + unsafe.Sizeof(argv)))
+		}
+		return args
+	}
+	return defaultArgs
 }
 
 // Copy size bytes from src to dst. The memory areas must not overlap.
@@ -46,6 +67,9 @@ func memmove(dst, src unsafe.Pointer, size uintptr)
 // Calls to this function are converted to LLVM intrinsic calls such as
 // llvm.memset.p0i8.i32(ptr, 0, size, false).
 func memzero(ptr unsafe.Pointer, size uintptr)
+
+//export strlen
+func strlen(ptr unsafe.Pointer) uintptr
 
 // Compare two same-size buffers for equality.
 func memequal(x, y unsafe.Pointer, n uintptr) bool {

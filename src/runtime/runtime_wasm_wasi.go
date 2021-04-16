@@ -12,13 +12,16 @@ type timeUnit int64
 //export __wasm_call_ctors
 func __wasm_call_ctors()
 
-//export _start
-func _start() {
+//export main
+func main(argc int32, argv *unsafe.Pointer) int {
+	main_argc = argc
+	main_argv = argv
+
 	// These need to be initialized early so that the heap can be initialized.
 	heapStart = uintptr(unsafe.Pointer(&heapStartSymbol))
 	heapEnd = uintptr(wasm_memory_size(0) * wasmPageSize)
-	__wasm_call_ctors()
 	run()
+	return 0
 }
 
 func ticksToNanoseconds(ticks timeUnit) int64 {

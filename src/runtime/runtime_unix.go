@@ -43,8 +43,11 @@ func postinit() {}
 
 // Entry point for Go. Initialize all packages and call main.main().
 //export main
-func main() int {
+func main(argc int32, argv *unsafe.Pointer) int {
 	preinit()
+
+	main_argc = argc
+	main_argv = argv
 
 	// Obtain the initial stack pointer right before calling the run() function.
 	// The run function has been moved to a separate (non-inlined) function so
@@ -64,9 +67,6 @@ func runMain() {
 
 //go:extern environ
 var environ *unsafe.Pointer
-
-//export strlen
-func strlen(ptr unsafe.Pointer) uintptr
 
 //go:linkname syscall_runtime_envs syscall.runtime_envs
 func syscall_runtime_envs() []string {

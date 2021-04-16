@@ -475,11 +475,14 @@ func Build(pkgName, outpath string, config *compileopts.Config, action func(Buil
 		jobs = append(jobs, job)
 		linkerDependencies = append(linkerDependencies, job)
 	case "wasi-libc":
-		path := filepath.Join(root, "lib/wasi-libc/sysroot/lib/wasm32-wasi/libc.a")
-		if _, err := os.Stat(path); os.IsNotExist(err) {
+		crt := filepath.Join(root, "lib/wasi-libc/sysroot/lib/wasm32-wasi/crt1.o")
+		lib := filepath.Join(root, "lib/wasi-libc/sysroot/lib/wasm32-wasi/libc.a")
+		_, err1 := os.Stat(crt)
+		_, err2 := os.Stat(lib)
+		if os.IsNotExist(err1) || os.IsNotExist(err2) {
 			return errors.New("could not find wasi-libc, perhaps you need to run `make wasi-libc`?")
 		}
-		ldflags = append(ldflags, path)
+		ldflags = append(ldflags, crt, lib)
 	case "":
 		// no library specified, so nothing to do
 	default:
