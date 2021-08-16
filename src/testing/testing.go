@@ -234,6 +234,7 @@ type InternalTest struct {
 type M struct {
 	// tests is a list of the test names to execute
 	Tests []InternalTest
+	Benchmarks []InternalBenchmark
 }
 
 // Run the test suite.
@@ -274,6 +275,8 @@ func (m *M) Run() int {
 		}
 	}
 
+	runBenchmarks(m.Benchmarks)
+
 	if failures > 0 {
 		fmt.Println("FAIL")
 	} else {
@@ -290,6 +293,7 @@ func MainStart(deps interface{}, tests []InternalTest, benchmarks []InternalBenc
 	Init()
 	return &M{
 		Tests: tests,
+		Benchmarks: benchmarks,
 	}
 }
 

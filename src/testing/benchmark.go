@@ -7,6 +7,7 @@
 package testing
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -185,6 +186,28 @@ func (r BenchmarkResult) AllocsPerOp() int64 {
 // which is calculated as r.MemBytes / r.N.
 func (r BenchmarkResult) AllocedBytesPerOp() int64 {
 	return 0 // Dummy version to allow running e.g. golang.org/test/fibo.go
+}
+
+func runBenchmarks(benchmarks []InternalBenchmark) bool {
+	for _, benchmark := range benchmarks {
+		b := &B{
+			common: common{
+				name: benchmark.Name,
+			},
+			benchTime: benchTime,
+			benchFunc: func(b *B) {
+				b.Run(benchmark.Name, benchmark.F)
+			},
+		}
+
+		if flagVerbose {
+			fmt.Printf("=== RUN   %s\n", b.name)
+		}
+		b.launch()
+
+		fmt.Printf("--- Result: %d ns/op\n", b.result.NsPerOp())
+	}
+	return true
 }
 
 // Run benchmarks f as a subbenchmark with the given name. It reports
