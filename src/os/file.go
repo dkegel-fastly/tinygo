@@ -234,16 +234,6 @@ const (
 	O_TRUNC  int = syscall.O_TRUNC
 )
 
-// Stat is a stub, not yet implemented
-func Stat(name string) (FileInfo, error) {
-	return nil, &PathError{"stat", name, ErrNotImplemented}
-}
-
-// Lstat is a stub, not yet implemented
-func Lstat(name string) (FileInfo, error) {
-	return nil, &PathError{"lstat", name, ErrNotImplemented}
-}
-
 func Getwd() (string, error) {
 	return syscall.Getwd()
 }
