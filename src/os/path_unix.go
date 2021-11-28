@@ -23,3 +23,7 @@ func basename(name string) string {
 
 	return name
 }
+
+func fixRootDirectory(p string) string {
+	return p
+}
