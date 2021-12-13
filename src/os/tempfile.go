@@ -127,10 +127,8 @@ func MkdirTemp(dir, pattern string) (string, error) {
 			return "", &PathError{Op: "mkdirtemp", Path: dir + string(PathSeparator) + prefix + "*" + suffix, Err: ErrExist}
 		}
 		if IsNotExist(err) {
-			_, serr := Stat(dir)
-			ine := IsNotExist(err)
-			if ine {
-				return "", serr
+			if _, err := Stat(dir); IsNotExist(err) {
+				return "", err
 			}
 		}
 		return "", err
