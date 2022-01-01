@@ -44,3 +44,7 @@ var libcErrno uintptr
 func getErrno() error {
 	return Errno(libcErrno)
 }
+
+func Pipe2(p []int, flags int) (err error) {
+	return ENOSYS // TODO
+}

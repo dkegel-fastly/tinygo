@@ -144,10 +144,6 @@ func Kill(pid int, sig Signal) (err error) {
 
 type SysProcAttr struct{}
 
-func Pipe2(p []int, flags int) (err error) {
-	return ENOSYS // TODO
-}
-
 func Getenv(key string) (value string, found bool) {
 	data := cstring(key)
 	raw := libc_getenv(&data[0])

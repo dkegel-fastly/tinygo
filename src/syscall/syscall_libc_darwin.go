@@ -181,6 +181,19 @@ func Lstat(path string, p *Stat_t) (err error) {
 	return
 }
 
+func Pipe2(fds []int, flags int) (err error) {
+	// Mac only has Pipe, which ignores the flags argument
+	buf := make([]int32, 2)
+	fail := int(libc_pipe(&buf[0]))
+	if fail < 0 {
+		err = getErrno()
+	} else {
+		fds[0] = int(buf[0])
+		fds[1] = int(buf[1])
+	}
+	return
+}
+
 // The odd $INODE64 suffix is an Apple compatibility feature, see https://assert.cc/posts/darwin_use_64_bit_inode_vs_ctypes/
 // Without it, you get the old, smaller struct stat from mac os 10.2 or so.
 
@@ -191,3 +204,7 @@ func libc_stat(pathname *byte, ptr unsafe.Pointer) int32
 // int lstat(const char *path, struct stat * buf);
 //export lstat$INODE64
 func libc_lstat(pathname *byte, ptr unsafe.Pointer) int32
+
+// int pipe(int32 *fds);
+//export pipe
+func libc_pipe(fds *int32) int32
