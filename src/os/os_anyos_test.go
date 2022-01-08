@@ -7,9 +7,31 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
+
+var dot = []string{
+	"dir.go",
+	"env.go",
+	"errors.go",
+	"file.go",
+	"os_test.go",
+	"types.go",
+	"stat_darwin.go",
+	"stat_linux.go",
+}
+
+func equal(name1, name2 string) (r bool) {
+	switch runtime.GOOS {
+	case "windows":
+		r = strings.ToLower(name1) == strings.ToLower(name2)
+	default:
+		r = name1 == name2
+	}
+	return
+}
 
 func randomName() string {
 	// fastrand() does not seem available here, so fake it
@@ -93,4 +115,148 @@ func TestRemove(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
+}
+
+func testReaddirnames(dir string, contents []string, t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Log("TODO: Readdirnames unimplemented, skipping")
+		return
+	}
+	file, err := Open(dir)
+	if err != nil {
+		t.Fatalf("open %q failed: %v", dir, err)
+	}
+	defer file.Close()
+	s, err2 := file.Readdirnames(-1)
+	if err2 != nil {
+		t.Fatalf("Readdirnames %q failed: %v", dir, err2)
+	}
+	for _, m := range contents {
+		found := false
+		for _, n := range s {
+			if n == "." || n == ".." {
+				t.Errorf("got %q in directory", n)
+			}
+			if !equal(m, n) {
+				continue
+			}
+			if found {
+				t.Error("present twice:", m)
+			}
+			found = true
+		}
+		if !found {
+			t.Error("could not find", m)
+		}
+	}
+	if s == nil {
+		t.Error("Readdirnames returned nil instead of empty slice")
+	}
+}
+
+func testReaddir(dir string, contents []string, t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Log("TODO: Readdir unimplemented, skipping")
+		return
+	}
+	file, err := Open(dir)
+	if err != nil {
+		t.Fatalf("open %q failed: %v", dir, err)
+	}
+	defer file.Close()
+	s, err2 := file.Readdir(-1)
+	if err2 != nil {
+		t.Fatalf("Readdir %q failed: %v", dir, err2)
+	}
+	for _, m := range contents {
+		found := false
+		for _, n := range s {
+			if n.Name() == "." || n.Name() == ".." {
+				t.Errorf("got %q in directory", n.Name())
+			}
+			if !equal(m, n.Name()) {
+				continue
+			}
+			if found {
+				t.Error("present twice:", m)
+			}
+			found = true
+		}
+		if !found {
+			t.Error("could not find", m)
+		}
+	}
+	if s == nil {
+		t.Error("Readdir returned nil instead of empty slice")
+	}
+}
+
+func testReadDir(dir string, contents []string, t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Log("TODO: ReadDir unimplemented, skipping")
+		return
+	}
+	file, err := Open(dir)
+	if err != nil {
+		t.Fatalf("open %q failed: %v", dir, err)
+	}
+	defer file.Close()
+	s, err2 := file.ReadDir(-1)
+	if err2 != nil {
+		t.Fatalf("ReadDir %q failed: %v", dir, err2)
+	}
+	for _, m := range contents {
+		found := false
+		for _, n := range s {
+			if n.Name() == "." || n.Name() == ".." {
+				t.Errorf("got %q in directory", n)
+			}
+			if !equal(m, n.Name()) {
+				continue
+			}
+			if found {
+				t.Error("present twice:", m)
+			}
+			found = true
+			lstat, err := Lstat(dir + "/" + m)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if n.IsDir() != lstat.IsDir() {
+				t.Errorf("%s: IsDir=%v, want %v", m, n.IsDir(), lstat.IsDir())
+			}
+			if n.Type() != lstat.Mode().Type() {
+				t.Errorf("%s: IsDir=%v, want %v", m, n.Type(), lstat.Mode().Type())
+			}
+			info, err := n.Info()
+			if err != nil {
+				t.Errorf("%s: Info: %v", m, err)
+				continue
+			}
+			if !SameFile(info, lstat) {
+				t.Errorf("%s: Info: SameFile(info, lstat) = false", m)
+			}
+		}
+		if !found {
+			t.Error("could not find", m)
+		}
+	}
+	if s == nil {
+		t.Error("ReadDir returned nil instead of empty slice")
+	}
+}
+
+func TestFileReaddirnames(t *testing.T) {
+	testReaddirnames(".", dot, t)
+	testReaddirnames(TempDir(), nil, t)
+}
+
+func TestFileReaddir(t *testing.T) {
+	testReaddir(".", dot, t)
+	testReaddir(TempDir(), nil, t)
+}
+
+func TestFileReadDir(t *testing.T) {
+	testReadDir(".", dot, t)
+	testReadDir(TempDir(), nil, t)
 }

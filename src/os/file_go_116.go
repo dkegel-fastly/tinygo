@@ -5,21 +5,13 @@ package os
 import (
 	"io"
 	"io/fs"
+	"sort"
 )
 
 type (
-	DirEntry = fs.DirEntry
 	FileMode = fs.FileMode
 	FileInfo = fs.FileInfo
 )
-
-func (f *File) ReadDir(n int) ([]DirEntry, error) {
-	return nil, &PathError{"ReadDir", f.name, ErrNotImplemented}
-}
-
-func ReadDir(name string) ([]DirEntry, error) {
-	return nil, &PathError{"ReadDir", name, ErrNotImplemented}
-}
 
 // The followings are copied from Go 1.16 official implementation:
 // https://github.com/golang/go/blob/go1.16/src/os/file.go
@@ -111,3 +103,52 @@ const (
 
 	ModePerm = fs.ModePerm // Unix permission bits, 0o777
 )
+
+// TODO: move to dir.go once we drop go 1.15
+
+// A DirEntry is an entry read from a directory
+// (using the ReadDir function or a File's ReadDir method).
+type DirEntry = fs.DirEntry
+
+// ReadDir reads the contents of the directory associated with the file f
+// and returns a slice of DirEntry values in directory order.
+// Subsequent calls on the same file will yield later DirEntry records in the directory.
+//
+// If n > 0, ReadDir returns at most n DirEntry records.
+// In this case, if ReadDir returns an empty slice, it will return an error explaining why.
+// At the end of a directory, the error is io.EOF.
+//
+// If n <= 0, ReadDir returns all the DirEntry records remaining in the directory.
+// When it succeeds, it returns a nil error (not io.EOF).
+func (f *File) ReadDir(n int) ([]DirEntry, error) {
+	if f == nil {
+		return nil, ErrInvalid
+	}
+	_, dirents, _, err := f.readdir(n, readdirDirEntry)
+	if dirents == nil {
+		// Match Readdir and Readdirnames: don't return nil slices.
+		dirents = []DirEntry{}
+	}
+	return dirents, err
+}
+
+// testingForceReadDirLstat forces ReadDir to call Lstat, for testing that code path.
+// This can be difficult to provoke on some Unix systems otherwise.
+var testingForceReadDirLstat bool
+
+// ReadDir reads the named directory,
+// returning all its directory entries sorted by filename.
+// If an error occurs reading the directory,
+// ReadDir returns the entries it was able to read before the error,
+// along with the error.
+func ReadDir(name string) ([]DirEntry, error) {
+	f, err := Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	dirs, err := f.ReadDir(-1)
+	sort.Slice(dirs, func(i, j int) bool { return dirs[i].Name() < dirs[j].Name() })
+	return dirs, err
+}
