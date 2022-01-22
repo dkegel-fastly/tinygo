@@ -11,6 +11,10 @@
 
 package os
 
+import (
+	"syscall"
+)
+
 // Seek sets the offset for the next Read or Write on file to offset, interpreted
 // according to whence: 0 means relative to the origin of the file, 1 means
 // relative to the current offset, and 2 means relative to the end.
@@ -28,4 +32,12 @@ func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
 // If there is an error, it will be of type *PathError.
 func (f *File) Stat() (FileInfo, error) {
 	return nil, &PathError{Op: "fstat", Path: f.name, Err: ErrNotImplemented}
+}
+
+// Add a stub for seek so that the time package, and thus io/fs, and thus path/filepath, can compile.
+// TODO: make this a non-stub, and thus fix the whole problem?
+
+//export syscall.seek
+func seek(fd int, offset int64, whence int) (newoffset int64, err syscall.Errno) {
+	return 0, syscall.ENOTSUP
 }
